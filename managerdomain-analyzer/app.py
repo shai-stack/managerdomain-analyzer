@@ -20,7 +20,7 @@ def index():
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
-    data = request.get_json()
+    data = request.get_json() or {}
     raw = data.get('domains', [])
     domains = list(dict.fromkeys(clean_domain(d) for d in raw if d.strip()))[:250]
     domains = [d for d in domains if d]
