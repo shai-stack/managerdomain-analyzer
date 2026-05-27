@@ -1,5 +1,2 @@
 flask
 aiohttp
-pytest
-pytest-asyncio
-aioresponses
