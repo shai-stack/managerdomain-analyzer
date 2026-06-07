@@ -1,3 +1,4 @@
+import logging
 import os
 import anthropic
 
@@ -9,11 +10,14 @@ from conversation import ConversationHistory
 
 CANNES_MCP_URL = os.getenv("CANNES_MCP_URL", "https://mimmopalm--cannes-lions-mcp-web.modal.run/mcp")
 MODEL = "claude-sonnet-4-6"
-MAX_TOKENS = 1024
+MAX_TOKENS = 2048
 WHATSAPP_LIMIT = 1500
 
 _history = ConversationHistory(max_messages=10)
 _client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+if not os.getenv("ANTHROPIC_API_KEY"):
+    import logging as _log
+    _log.getLogger(__name__).warning("ANTHROPIC_API_KEY is not set — agent calls will fail")
 
 
 def build_system_prompt(calendar_summary: Optional[str]) -> str:
@@ -73,16 +77,15 @@ def run(phone: str, user_message: str, cal_client: Optional[CalendarClient] = No
         ) as stream:
             response = stream.get_final_message()
 
-        reply = ""
-        for block in response.content:
-            if hasattr(block, "text"):
-                reply = block.text
-                break
+        reply = " ".join(
+            block.text for block in response.content if block.type == "text"
+        ).strip()
 
         if not reply:
             reply = "Sorry, I couldn't get a response. Please try again."
 
     except Exception:
+        logging.getLogger(__name__).exception("Agent call failed for phone %s", phone)
         reply = "I'm having trouble right now. Please try again in a moment."
 
     reply = truncate_for_whatsapp(reply)
