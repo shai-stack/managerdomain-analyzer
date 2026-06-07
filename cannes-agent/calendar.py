@@ -26,7 +26,7 @@ class CalendarClient:
         self._service = _build("calendar", "v3", credentials=creds)
         self._calendar_id = calendar_id
 
-    def get_events_for_day(self, day: date) -> list:
+    def get_events_for_day(self, day: date) -> list[CalendarEvent]:
         time_min = datetime(day.year, day.month, day.day, 0, 0, 0, tzinfo=timezone.utc).isoformat()
         time_max = datetime(day.year, day.month, day.day, 23, 59, 59, tzinfo=timezone.utc).isoformat()
         result = self._service.events().list(
@@ -40,8 +40,8 @@ class CalendarClient:
         for item in result.get("items", []):
             start_raw = item.get("start", {}).get("dateTime", "")
             end_raw = item.get("end", {}).get("dateTime", "")
-            if not start_raw:
-                continue
+            if not start_raw or not end_raw:
+                continue  # skip all-day events (use "date" not "dateTime") and malformed entries
             start = datetime.fromisoformat(start_raw).strftime("%H:%M")
             end = datetime.fromisoformat(end_raw).strftime("%H:%M")
             events.append(CalendarEvent(title=item.get("summary", "Untitled"), start=start, end=end))
@@ -54,5 +54,7 @@ def build_calendar_client() -> Optional[CalendarClient]:
         return None
     try:
         return CalendarClient(creds_json)
-    except Exception:
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("Calendar client init failed: %s", exc)
         return None
