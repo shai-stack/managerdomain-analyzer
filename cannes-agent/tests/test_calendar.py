@@ -1,7 +1,7 @@
 import json
 from unittest.mock import patch, MagicMock
 from datetime import date
-from calendar import CalendarClient, CalendarEvent
+from gcal import CalendarClient, CalendarEvent
 
 def make_mock_event(summary, start_time, end_time):
     return {

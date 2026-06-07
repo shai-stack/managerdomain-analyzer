@@ -1,19 +1,10 @@
 import os
-import sys
-
-# anthropic -> httpx -> `from calendar import timegm` which would hit our local
-# calendar.py instead of the stdlib. Import anthropic before the local package
-# directory is on sys.path, or ensure stdlib is found first.
-_here = os.path.dirname(os.path.abspath(__file__))
-_orig_path = sys.path[:]
-sys.path = [p for p in sys.path if os.path.abspath(p) != _here]
-import anthropic  # noqa: E402 — must come before local calendar is reachable
-sys.path = _orig_path
+import anthropic
 
 from datetime import date
 from typing import Optional
 
-from calendar import CalendarClient, CalendarEvent
+from gcal import CalendarClient, CalendarEvent
 from conversation import ConversationHistory
 
 CANNES_MCP_URL = os.getenv("CANNES_MCP_URL", "https://mimmopalm--cannes-lions-mcp-web.modal.run/mcp")

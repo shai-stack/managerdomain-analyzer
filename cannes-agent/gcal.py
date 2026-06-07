@@ -1,20 +1,3 @@
-import importlib.util as _ilu
-import sysconfig as _sc
-import types as _types
-
-# Load the stdlib calendar module directly from its file so we can re-export
-# symbols (e.g. timegm) that other packages (httpx via http.cookiejar) need.
-# This avoids a circular-import problem caused by this file shadowing the stdlib.
-_stdlib_cal_path = _sc.get_paths()["stdlib"] + "/calendar.py"
-_stdlib_cal_spec = _ilu.spec_from_file_location("_stdlib_calendar", _stdlib_cal_path)
-_stdlib_cal = _ilu.module_from_spec(_stdlib_cal_spec)
-_stdlib_cal_spec.loader.exec_module(_stdlib_cal)  # type: ignore[union-attr]
-# Re-export commonly needed stdlib symbols
-timegm = _stdlib_cal.timegm
-month_abbr = _stdlib_cal.month_abbr
-month_name = _stdlib_cal.month_name
-monthrange = _stdlib_cal.monthrange
-
 import json
 import os
 from dataclasses import dataclass
