@@ -1,47 +1,58 @@
 import asyncio
+import logging
 import os
-import xml.sax.saxutils as saxutils
-from typing import Annotated
 
-from fastapi import FastAPI, Form, Request, Response
-from twilio.request_validator import RequestValidator
+from fastapi import FastAPI, Request, Response
+from telegram import Update
+from telegram.ext import Application, MessageHandler, filters
 
 import agent
 from gcal import build_calendar_client
+
+log = logging.getLogger(__name__)
+
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+WEBHOOK_URL = os.getenv("RAILWAY_PUBLIC_DOMAIN", "")
 
 app = FastAPI()
 
 try:
     cal_client = build_calendar_client()
 except Exception:
-    import logging as _log
-    _log.getLogger(__name__).warning("Google Calendar client failed to initialize, calendar features disabled")
+    log.warning("Google Calendar client failed to initialize, calendar features disabled")
     cal_client = None
 
-_twilio_auth_token = os.getenv("TWILIO_AUTH_TOKEN")
-if not _twilio_auth_token:
-    import logging as _log
-    _log.getLogger(__name__).warning("TWILIO_AUTH_TOKEN is not set — signature validation will fail")
-_validator = RequestValidator(_twilio_auth_token or "")
+# Build the Telegram bot application
+_telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
 
-def validate_twilio_signature(request: Request, form_data: dict) -> bool:
-    # Railway sits behind a proxy — reconstruct the public HTTPS URL
-    # that Twilio signed against using forwarded headers.
-    proto = request.headers.get("X-Forwarded-Proto", "https")
-    host = request.headers.get("X-Forwarded-Host", request.headers.get("host", ""))
-    url = f"{proto}://{host}{request.url.path}"
-    signature = request.headers.get("X-Twilio-Signature", "")
-    return _validator.validate(url, form_data, signature)
+async def handle_message(update: Update, context) -> None:
+    """Handle incoming Telegram messages."""
+    if not update.message or not update.message.text:
+        return
+    phone = str(update.message.chat_id)
+    user_message = update.message.text
+    reply = await asyncio.to_thread(agent.run, phone, user_message, cal_client)
+    await update.message.reply_text(reply)
 
 
-def twiml_response(message: str) -> Response:
-    safe = saxutils.escape(message)
-    body = f"""<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Message>{safe}</Message>
-</Response>"""
-    return Response(content=body, media_type="application/xml")
+_telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+
+@app.on_event("startup")
+async def startup():
+    await _telegram_app.initialize()
+    if WEBHOOK_URL:
+        webhook = f"https://{WEBHOOK_URL}/telegram"
+        await _telegram_app.bot.set_webhook(webhook)
+        log.info("Telegram webhook set to %s", webhook)
+    else:
+        log.warning("RAILWAY_PUBLIC_DOMAIN not set — webhook not registered")
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await _telegram_app.shutdown()
 
 
 @app.get("/health")
@@ -49,15 +60,9 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/webhook")
-async def webhook(
-    request: Request,
-    From: Annotated[str, Form()],
-    Body: Annotated[str, Form()],
-):
-    form_data = dict(await request.form())
-    if not validate_twilio_signature(request, form_data):
-        return Response(status_code=403)
-
-    reply = await asyncio.to_thread(agent.run, From, Body, cal_client)
-    return twiml_response(reply)
+@app.post("/telegram")
+async def telegram_webhook(request: Request):
+    data = await request.json()
+    update = Update.de_json(data, _telegram_app.bot)
+    await _telegram_app.process_update(update)
+    return Response(status_code=200)
