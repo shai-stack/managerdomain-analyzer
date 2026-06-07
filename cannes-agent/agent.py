@@ -62,7 +62,7 @@ def run(phone: str, user_message: str, cal_client: Optional[CalendarClient] = No
     messages = _history.get(phone)
 
     try:
-        with _client.messages.stream(
+        response = _client.beta.messages.create(
             model=MODEL,
             max_tokens=MAX_TOKENS,
             system=system_prompt,
@@ -74,8 +74,8 @@ def run(phone: str, user_message: str, cal_client: Optional[CalendarClient] = No
                     "name": "cannes-lions",
                 }
             ],
-        ) as stream:
-            response = stream.get_final_message()
+            betas=["mcp-client-2025-04-04"],
+        )
 
         reply = " ".join(
             block.text for block in response.content if block.type == "text"
