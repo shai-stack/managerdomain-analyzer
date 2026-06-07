@@ -1,4 +1,6 @@
+import asyncio
 import os
+import xml.sax.saxutils as saxutils
 from typing import Annotated
 
 from fastapi import FastAPI, Form, Request, Response
@@ -8,8 +10,19 @@ import agent
 from gcal import build_calendar_client
 
 app = FastAPI()
-cal_client = build_calendar_client()
-_validator = RequestValidator(os.getenv("TWILIO_AUTH_TOKEN", ""))
+
+try:
+    cal_client = build_calendar_client()
+except Exception:
+    import logging as _log
+    _log.getLogger(__name__).warning("Google Calendar client failed to initialize, calendar features disabled")
+    cal_client = None
+
+_twilio_auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+if not _twilio_auth_token:
+    import logging as _log
+    _log.getLogger(__name__).warning("TWILIO_AUTH_TOKEN is not set — signature validation will fail")
+_validator = RequestValidator(_twilio_auth_token or "")
 
 
 def validate_twilio_signature(request: Request, form_data: dict) -> bool:
@@ -19,9 +32,10 @@ def validate_twilio_signature(request: Request, form_data: dict) -> bool:
 
 
 def twiml_response(message: str) -> Response:
+    safe = saxutils.escape(message)
     body = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Message>{message}</Message>
+    <Message>{safe}</Message>
 </Response>"""
     return Response(content=body, media_type="application/xml")
 
@@ -41,5 +55,5 @@ async def webhook(
     if not validate_twilio_signature(request, form_data):
         return Response(status_code=403)
 
-    reply = agent.run(phone=From, user_message=Body, cal_client=cal_client)
+    reply = await asyncio.to_thread(agent.run, From, Body, cal_client)
     return twiml_response(reply)

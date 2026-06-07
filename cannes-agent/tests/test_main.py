@@ -29,3 +29,12 @@ def test_health_check(client):
     resp = client.get("/health")
     assert resp.status_code == 200
     assert resp.json() == {"status": "ok"}
+
+def test_webhook_invalid_signature_returns_403(client):
+    with patch("main.validate_twilio_signature", return_value=False):
+        resp = client.post(
+            "/webhook",
+            data={"From": "whatsapp:+972501234567", "Body": "Hello"},
+            headers={"X-Twilio-Signature": "invalid"},
+        )
+    assert resp.status_code == 403
