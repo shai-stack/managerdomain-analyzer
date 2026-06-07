@@ -62,6 +62,7 @@ def run(phone: str, user_message: str, cal_client: Optional[CalendarClient] = No
     messages = _history.get(phone)
 
     try:
+        logging.getLogger(__name__).info("Calling Claude API for phone %s: %s", phone, user_message)
         response = _client.beta.messages.create(
             model=MODEL,
             max_tokens=MAX_TOKENS,
@@ -77,6 +78,7 @@ def run(phone: str, user_message: str, cal_client: Optional[CalendarClient] = No
             betas=["mcp-client-2025-04-04"],
         )
 
+        logging.getLogger(__name__).info("Claude API response received, stop_reason=%s", response.stop_reason)
         reply = " ".join(
             block.text for block in response.content if block.type == "text"
         ).strip()
