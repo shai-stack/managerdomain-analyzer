@@ -18,8 +18,12 @@ app = FastAPI()
 
 try:
     cal_client = build_calendar_client()
-except Exception:
-    log.warning("Google Calendar client failed to initialize, calendar features disabled")
+    if cal_client:
+        log.info("Google Calendar client initialized OK (calendar_id=%s)", os.getenv("GOOGLE_CALENDAR_ID", "primary"))
+    else:
+        log.warning("Google Calendar client is None — GOOGLE_CREDENTIALS_JSON may not be set")
+except Exception as e:
+    log.warning("Google Calendar client failed to initialize: %s", e)
     cal_client = None
 
 # Build the Telegram bot application
