@@ -2,7 +2,7 @@ import logging
 import os
 import anthropic
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Optional
 
 from gcal import CalendarClient, CalendarEvent
@@ -26,7 +26,7 @@ def build_system_prompt(calendar_summary: Optional[str]) -> str:
     date_str = today.strftime("%B %d, %Y")  # e.g. "June 09, 2026"
     cal_section = ""
     if calendar_summary:
-        cal_section = f"\n\nShai's Google Calendar for today:\n{calendar_summary}"
+        cal_section = f"\n\nShai's Google Calendar (today + Cannes week June 21-26):\n{calendar_summary}"
     return (
         f"You are a personal assistant for Shai, helping him navigate Cannes Lions 2026. "
         f"Today is {day_name}, {date_str}. Cannes Lions 2026 runs June 21-26. "
@@ -46,14 +46,28 @@ def truncate_for_whatsapp(text: str) -> str:
 
 
 def _get_calendar_summary(cal_client: Optional[CalendarClient]) -> Optional[str]:
+    """Fetch calendar events for Cannes week (June 21-26) plus today."""
     if cal_client is None:
         return None
     try:
+        cannes_start = date(2026, 6, 21)
+        cannes_end = date(2026, 6, 26)
         today = date.today()
-        events = cal_client.get_events_for_day(today)
-        if not events:
-            return None
-        return "\n".join(str(e) for e in events)
+        # Collect unique dates: today + all of Cannes week
+        dates_to_fetch = set()
+        dates_to_fetch.add(today)
+        d = cannes_start
+        while d <= cannes_end:
+            dates_to_fetch.add(d)
+            d += timedelta(days=1)
+        lines = []
+        for d in sorted(dates_to_fetch):
+            events = cal_client.get_events_for_day(d)
+            if events:
+                label = d.strftime("%A %B %d")
+                lines.append(f"{label}:")
+                lines.extend(f"  {e}" for e in events)
+        return "\n".join(lines) if lines else None
     except Exception:
         return None
 
