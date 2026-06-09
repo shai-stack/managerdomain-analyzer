@@ -39,6 +39,29 @@ def build_system_prompt(calendar_summary: Optional[str]) -> str:
     )
 
 
+_TRENDING_KEYWORDS = [
+    "trending", "buzz", "what's people saying", "what are people",
+    "social", "linkedin", "twitter", "x.com", "what's happening",
+    "talk about", "talking about", "people saying",
+]
+
+
+def _is_trending_query(message: str) -> bool:
+    """Return True if the message is asking about social/trending Cannes content."""
+    lower = message.lower()
+    return any(kw in lower for kw in _TRENDING_KEYWORDS)
+
+
+def _inject_trending(system_prompt: str, trending_content: str) -> str:
+    """Append trending content block to system prompt if content is non-empty."""
+    if not trending_content:
+        return system_prompt
+    return (
+        system_prompt
+        + f"\n\nCurrent Cannes Lions social buzz (LinkedIn + X):\n{trending_content}"
+    )
+
+
 def truncate_for_whatsapp(text: str) -> str:
     if len(text) <= WHATSAPP_LIMIT:
         return text
@@ -75,6 +98,11 @@ def _get_calendar_summary(cal_client: Optional[CalendarClient]) -> Optional[str]
 def run(phone: str, user_message: str, cal_client: Optional[CalendarClient] = None) -> str:
     calendar_summary = _get_calendar_summary(cal_client)
     system_prompt = build_system_prompt(calendar_summary)
+
+    if _is_trending_query(user_message):
+        import firecrawl
+        trending = firecrawl.get_trending_content()
+        system_prompt = _inject_trending(system_prompt, trending)
 
     _history.add(phone, "user", user_message)
     messages = _history.get(phone)
