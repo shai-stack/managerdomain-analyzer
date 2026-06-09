@@ -36,8 +36,14 @@ async def handle_message(update: Update, context) -> None:
         return
     phone = str(update.message.chat_id)
     user_message = update.message.text
-    reply = await asyncio.to_thread(agent.run, phone, user_message, cal_client)
-    await update.message.reply_text(reply)
+    log.info("Received message from %s: %s", phone, user_message)
+    try:
+        reply = await asyncio.to_thread(agent.run, phone, user_message, cal_client)
+        log.info("Sending reply to %s: %s", phone, reply[:80])
+        await update.message.reply_text(reply)
+    except Exception as e:
+        log.exception("Failed to handle message: %s", e)
+        await update.message.reply_text("Sorry, something went wrong. Please try again.")
 
 
 _telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
