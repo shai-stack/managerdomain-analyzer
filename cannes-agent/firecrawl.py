@@ -33,7 +33,8 @@ def _format_results(results: list[dict]) -> str:
         description = item.get("description", "").strip()
         url = item.get("url", "").strip()
         if title or description:
-            lines.append(f"- {title}: {description} ({url})")
+            parts = list(filter(None, [title, description]))
+            lines.append(f"- {': '.join(parts)} ({url})")
     return "\n".join(lines)
 
 
