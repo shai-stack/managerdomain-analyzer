@@ -41,8 +41,9 @@ def build_system_prompt(calendar_summary: Optional[str]) -> str:
 
 _TRENDING_KEYWORDS = [
     "trending", "buzz", "what's people saying", "what are people",
-    "social", "linkedin", "twitter", "x.com", "what's happening",
-    "talk about", "talking about", "people saying",
+    "social media", "social posts", "social buzz",
+    "linkedin", "twitter", "x.com", "what's happening",
+    "talking about", "people saying",
 ]
 
 

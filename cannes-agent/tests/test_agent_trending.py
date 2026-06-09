@@ -9,7 +9,7 @@ import agent
     "any LinkedIn posts about Cannes?",
     "what's happening on twitter?",
     "what's people talking about",
-    "show me social updates",
+    "show me social media updates",
 ])
 def test_is_trending_query_detects_keywords(msg):
     assert agent._is_trending_query(msg) is True
