@@ -1,5 +1,4 @@
 import logging
-import os
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -46,13 +45,14 @@ def _send_digest(bot, chat_id: str, anthropic_client, model: str) -> None:
         log.exception("Claude digest generation failed")
         digest = "Couldn't fetch the Cannes buzz right now — try asking me directly."
 
+    import asyncio
+    loop = asyncio.new_event_loop()
     try:
-        import asyncio
-        loop = asyncio.new_event_loop()
         loop.run_until_complete(bot.send_message(chat_id=chat_id, text=digest))
-        loop.close()
     except Exception:
         log.exception("Failed to send digest to Telegram")
+    finally:
+        loop.close()
 
 
 def start_scheduler(bot, chat_id: str, anthropic_client, model: str) -> None:
@@ -70,7 +70,8 @@ def start_scheduler(bot, chat_id: str, anthropic_client, model: str) -> None:
             replace_existing=True,
         )
 
-    _scheduler.start()
+    if not _scheduler.running:
+        _scheduler.start()
     log.info("Digest scheduler started with %d jobs", len(_build_cron_times()))
 
 
