@@ -7,12 +7,14 @@ from telegram import Update
 from telegram.ext import Application, MessageHandler, filters
 
 import agent
+import scheduler as digest_scheduler
 from gcal import build_calendar_client
 
 log = logging.getLogger(__name__)
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 WEBHOOK_URL = os.getenv("RAILWAY_PUBLIC_DOMAIN", "")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 
 app = FastAPI()
 
@@ -59,9 +61,17 @@ async def startup():
     else:
         log.warning("RAILWAY_PUBLIC_DOMAIN not set — webhook not registered")
 
+    digest_scheduler.start_scheduler(
+        bot=_telegram_app.bot,
+        chat_id=TELEGRAM_CHAT_ID,
+        anthropic_client=agent._client,
+        model=agent.MODEL,
+    )
+
 
 @app.on_event("shutdown")
 async def shutdown():
+    digest_scheduler.stop_scheduler()
     await _telegram_app.shutdown()
 
 
