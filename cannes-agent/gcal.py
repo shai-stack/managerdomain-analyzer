@@ -53,8 +53,9 @@ def build_calendar_client() -> Optional[CalendarClient]:
     creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
     if not creds_json:
         return None
+    calendar_id = os.getenv("GOOGLE_CALENDAR_ID", "primary")
     try:
-        return CalendarClient(creds_json)
+        return CalendarClient(creds_json, calendar_id=calendar_id)
     except Exception as exc:
         import logging
         logging.getLogger(__name__).warning("Calendar client init failed: %s", exc)
