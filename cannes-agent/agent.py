@@ -21,14 +21,18 @@ if not os.getenv("ANTHROPIC_API_KEY"):
 
 
 def build_system_prompt(calendar_summary: Optional[str]) -> str:
+    today = date.today()
+    day_name = today.strftime("%A")  # e.g. "Sunday"
+    date_str = today.strftime("%B %d, %Y")  # e.g. "June 09, 2026"
     cal_section = ""
     if calendar_summary:
         cal_section = f"\n\nShai's Google Calendar for today:\n{calendar_summary}"
     return (
-        "You are a personal assistant for Shai, helping him navigate Cannes Lions 2026. "
+        f"You are a personal assistant for Shai, helping him navigate Cannes Lions 2026. "
+        f"Today is {day_name}, {date_str}. Cannes Lions 2026 runs June 16-20. "
         "Shai's role is adtech. He is attending as an adtech professional. "
         "Use the Cannes schedule tools to answer questions about events, panels, and registrations. "
-        "Keep all replies concise, plain text, no markdown — WhatsApp renders it poorly. "
+        "Keep all replies concise, plain text, no markdown — Telegram renders markdown differently. "
         "If listing events, show at most 5 and offer to send more. "
         "When recommending events, check for calendar conflicts and flag them."
         f"{cal_section}"
