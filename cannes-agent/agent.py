@@ -15,6 +15,7 @@ WHATSAPP_LIMIT = 1500
 
 _history = ConversationHistory(max_messages=10)
 _client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+anthropic_client = _client
 if not os.getenv("ANTHROPIC_API_KEY"):
     import logging as _log
     _log.getLogger(__name__).warning("ANTHROPIC_API_KEY is not set — agent calls will fail")

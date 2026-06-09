@@ -64,7 +64,7 @@ async def startup():
     digest_scheduler.start_scheduler(
         bot=_telegram_app.bot,
         chat_id=TELEGRAM_CHAT_ID,
-        anthropic_client=agent._client,
+        anthropic_client=agent.anthropic_client,
         model=agent.MODEL,
     )
 
