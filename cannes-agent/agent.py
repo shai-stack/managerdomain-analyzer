@@ -29,7 +29,7 @@ def build_system_prompt(calendar_summary: Optional[str]) -> str:
         cal_section = f"\n\nShai's Google Calendar for today:\n{calendar_summary}"
     return (
         f"You are a personal assistant for Shai, helping him navigate Cannes Lions 2026. "
-        f"Today is {day_name}, {date_str}. Cannes Lions 2026 runs June 16-20. "
+        f"Today is {day_name}, {date_str}. Cannes Lions 2026 runs June 21-26. "
         "Shai's role is adtech. He is attending as an adtech professional. "
         "Use the Cannes schedule tools to answer questions about events, panels, and registrations. "
         "Keep all replies concise, plain text, no markdown — Telegram renders markdown differently. "
