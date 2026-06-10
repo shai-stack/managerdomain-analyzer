@@ -24,6 +24,9 @@ def parse_managerdomain(text: str) -> list:
     return results
 
 
+CDN_BLOCK_STATUSES = {403, 503, 429}
+
+
 async def fetch_managerdomain(session: aiohttp.ClientSession, domain: str) -> dict:
     blocked = False
     for scheme in ('https', 'http'):
@@ -36,7 +39,11 @@ async def fetch_managerdomain(session: aiohttp.ClientSession, domain: str) -> di
                         return {'domain': domain, 'manager_domains': parse_managerdomain(text), 'status': 'ok'}
                     blocked = True
                     break
-                return {'domain': domain, 'manager_domains': [], 'status': 'not_found'}
+                elif resp.status in CDN_BLOCK_STATUSES:
+                    blocked = True
+                    break
+                else:
+                    return {'domain': domain, 'manager_domains': [], 'status': 'not_found'}
         except (aiohttp.ClientError, asyncio.TimeoutError):
             continue
 
