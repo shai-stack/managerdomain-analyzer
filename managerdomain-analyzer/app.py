@@ -132,6 +132,7 @@ HTML = """<!DOCTYPE html>
   .tag-manager { background: rgba(74,158,255,0.1); border: 1px solid rgba(74,158,255,0.2); color: var(--accent2); }
   .tag-none { background: rgba(90,95,112,0.2); border: 1px solid var(--border); color: var(--muted); }
   .tag-error { background: rgba(230,57,70,0.1); border: 1px solid rgba(230,57,70,0.3); color: var(--accent); }
+  .tag-blocked { background: rgba(244,166,35,0.1); border: 1px solid rgba(244,166,35,0.3); color: var(--warn); }
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
@@ -251,8 +252,12 @@ function renderResults() {
 function renderSummary() {
   const counts = {};
   for (const r of allResults) {
-    const managers = r.manager_domains.length ? r.manager_domains : ['None'];
-    for (const m of managers) counts[m] = (counts[m] || 0) + 1;
+    if (r.status === 'blocked') {
+      counts['Blocked'] = (counts['Blocked'] || 0) + 1;
+    } else {
+      const managers = r.manager_domains.length ? r.manager_domains : ['None'];
+      for (const m of managers) counts[m] = (counts[m] || 0) + 1;
+    }
   }
   const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
   const max = sorted[0] ? sorted[0][1] : 1;
@@ -261,7 +266,9 @@ function renderSummary() {
     const isActive = activeFilter === manager;
     const label = manager === 'None'
       ? '<span style="color:var(--muted)">None</span>'
-      : escHtml(manager);
+      : manager === 'Blocked'
+          ? '<span style="color:var(--warn)">Blocked</span>'
+          : escHtml(manager);
     return '<tr class="clickable' + (isActive ? ' active-filter' : '') + '" data-manager="' + escHtml(manager) + '" onclick="toggleFilter(this.dataset.manager)">'
       + '<td>' + label + '</td>'
       + '<td><span class="count-badge">' + count + '</span></td>'
@@ -273,6 +280,8 @@ function renderSummary() {
 function renderTable() {
   const filtered = activeFilter
     ? allResults.filter(function(r) {
+        if (activeFilter === 'Blocked') return r.status === 'blocked';
+        if (r.status === 'blocked') return false;
         const managers = r.manager_domains.length ? r.manager_domains : ['None'];
         return managers.indexOf(activeFilter) !== -1;
       })
@@ -288,6 +297,8 @@ function renderTable() {
     var tags;
     if (r.status === 'error') {
       tags = '<span class="tag tag-error">Error</span>';
+    } else if (r.status === 'blocked') {
+      tags = '<span class="tag tag-blocked">Blocked</span>';
     } else if (!r.manager_domains.length) {
       tags = '<span class="tag tag-none">None</span>';
     } else {

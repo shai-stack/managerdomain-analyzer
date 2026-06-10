@@ -1,5 +1,6 @@
 import asyncio
 import aiohttp
+import os
 import re
 from flask import Flask, request, jsonify, render_template_string
 
@@ -24,20 +25,27 @@ def parse_managerdomain(text: str) -> list:
 
 
 async def fetch_managerdomain(session: aiohttp.ClientSession, domain: str) -> dict:
+    blocked = False
     for scheme in ('https', 'http'):
-        url = f"{scheme}://{domain}/ads.txt"
+        url = f'{scheme}://{domain}/ads.txt'
         try:
             async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                 if resp.status == 200:
                     text = await resp.text(errors='replace')
-                    return {
-                        'domain': domain,
-                        'manager_domains': parse_managerdomain(text),
-                        'status': 'ok',
-                    }
+                    if not is_html_response(text):
+                        return {'domain': domain, 'manager_domains': parse_managerdomain(text), 'status': 'ok'}
+                    blocked = True
+                    break
                 return {'domain': domain, 'manager_domains': [], 'status': 'not_found'}
         except (aiohttp.ClientError, asyncio.TimeoutError):
             continue
+
+    if blocked:
+        proxy_text = await fetch_via_scraperapi(session, f'https://{domain}/ads.txt')
+        if proxy_text is not None:
+            return {'domain': domain, 'manager_domains': parse_managerdomain(proxy_text), 'status': 'ok'}
+        return {'domain': domain, 'manager_domains': [], 'status': 'blocked'}
+
     return {'domain': domain, 'manager_domains': [], 'status': 'error'}
 
 
@@ -48,6 +56,28 @@ HEADERS = {
     'Accept-Encoding': 'gzip, deflate, br',
     'Cache-Control': 'no-cache',
 }
+
+SCRAPERAPI_KEY = os.environ.get('SCRAPERAPI_KEY', '')
+
+
+def is_html_response(text: str) -> bool:
+    sample = text.strip()[:200].lower()
+    return '<html' in sample or '<!doctype' in sample
+
+
+async def fetch_via_scraperapi(session: aiohttp.ClientSession, url: str):
+    if not SCRAPERAPI_KEY:
+        return None
+    proxy_url = f'https://api.scraperapi.com/?api_key={SCRAPERAPI_KEY}&url={url}'
+    try:
+        async with session.get(proxy_url, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+            if resp.status == 200:
+                text = await resp.text(errors='replace')
+                if not is_html_response(text):
+                    return text
+    except (aiohttp.ClientError, asyncio.TimeoutError):
+        pass
+    return None
 
 
 async def analyze_domains(domains: list) -> list:
@@ -190,6 +220,7 @@ HTML = """<!DOCTYPE html>
   .tag-manager { background: rgba(74,158,255,0.1); border: 1px solid rgba(74,158,255,0.2); color: var(--accent2); }
   .tag-none { background: rgba(90,95,112,0.2); border: 1px solid var(--border); color: var(--muted); }
   .tag-error { background: rgba(230,57,70,0.1); border: 1px solid rgba(230,57,70,0.3); color: var(--accent); }
+  .tag-blocked { background: rgba(244,166,35,0.1); border: 1px solid rgba(244,166,35,0.3); color: var(--warn); }
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
@@ -309,8 +340,12 @@ function renderResults() {
 function renderSummary() {
   const counts = {};
   for (const r of allResults) {
-    const managers = r.manager_domains.length ? r.manager_domains : ['None'];
-    for (const m of managers) counts[m] = (counts[m] || 0) + 1;
+    if (r.status === 'blocked') {
+      counts['Blocked'] = (counts['Blocked'] || 0) + 1;
+    } else {
+      const managers = r.manager_domains.length ? r.manager_domains : ['None'];
+      for (const m of managers) counts[m] = (counts[m] || 0) + 1;
+    }
   }
   const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
   const max = sorted[0] ? sorted[0][1] : 1;
@@ -319,7 +354,9 @@ function renderSummary() {
     const isActive = activeFilter === manager;
     const label = manager === 'None'
       ? '<span style="color:var(--muted)">None</span>'
-      : escHtml(manager);
+      : manager === 'Blocked'
+          ? '<span style="color:var(--warn)">Blocked</span>'
+          : escHtml(manager);
     return '<tr class="clickable' + (isActive ? ' active-filter' : '') + '" data-manager="' + escHtml(manager) + '" onclick="toggleFilter(this.dataset.manager)">'
       + '<td>' + label + '</td>'
       + '<td><span class="count-badge">' + count + '</span></td>'
@@ -331,6 +368,8 @@ function renderSummary() {
 function renderTable() {
   const filtered = activeFilter
     ? allResults.filter(function(r) {
+        if (activeFilter === 'Blocked') return r.status === 'blocked';
+        if (r.status === 'blocked') return false;
         const managers = r.manager_domains.length ? r.manager_domains : ['None'];
         return managers.indexOf(activeFilter) !== -1;
       })
@@ -346,6 +385,8 @@ function renderTable() {
     var tags;
     if (r.status === 'error') {
       tags = '<span class="tag tag-error">Error</span>';
+    } else if (r.status === 'blocked') {
+      tags = '<span class="tag tag-blocked">Blocked</span>';
     } else if (!r.manager_domains.length) {
       tags = '<span class="tag tag-none">None</span>';
     } else {
