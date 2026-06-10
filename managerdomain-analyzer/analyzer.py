@@ -33,7 +33,12 @@ async def fetch_managerdomain(session: aiohttp.ClientSession, domain: str) -> di
     return {'domain': domain, 'manager_domains': [], 'status': 'error'}
 
 
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (compatible; AdsTxtCrawler/1.0)',
+}
+
+
 async def analyze_domains(domains: list) -> list:
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(headers=HEADERS) as session:
         tasks = [fetch_managerdomain(session, d) for d in domains]
         return list(await asyncio.gather(*tasks))
