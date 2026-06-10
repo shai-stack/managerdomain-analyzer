@@ -109,26 +109,6 @@ def index():
     return render_template_string(HTML)
 
 
-@app.route('/debug/<path:domain>')
-def debug_domain(domain):
-    async def check():
-        async with aiohttp.ClientSession(headers=HEADERS) as session:
-            url = f'https://{domain}/ads.txt'
-            try:
-                async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
-                    text = await resp.text(errors='replace')
-                    return {
-                        'http_status': resp.status,
-                        'final_url': str(resp.url),
-                        'is_html': is_html_response(text),
-                        'preview': text[:300],
-                        'scraperapi_key_set': bool(SCRAPERAPI_KEY),
-                    }
-            except Exception as e:
-                return {'error': str(e)}
-    return jsonify(asyncio.run(check()))
-
-
 @app.route('/analyze', methods=['POST'])
 def analyze():
     data = request.get_json() or {}
