@@ -20,8 +20,12 @@ def _build_cron_times() -> list[tuple[int, int]]:
 
 def _format_digest_prompt(content: str) -> str:
     return (
-        "Write a short, punchy Cannes Lions social buzz digest (5 bullets max) "
-        "based on the following trending content from LinkedIn and X/Twitter. "
+        "You are a Cannes Lions 2026 intelligence briefing for an adtech executive. "
+        "Based on the search results below, write a fresh, specific digest of up to 5 bullets. "
+        "Focus on: (1) breaking news or announcements, (2) notable people or executives attending or speaking, "
+        "(3) key adtech/programmatic/AI insights or trends, (4) anything surprising or worth acting on. "
+        "Be specific — name actual people, companies, sessions. Skip generic hype. "
+        "If results are thin or repetitive, say so honestly rather than padding. "
         "Plain text only, no markdown, no headers.\n\n"
         f"{content}"
     )

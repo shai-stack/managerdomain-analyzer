@@ -35,7 +35,9 @@ def build_system_prompt(calendar_summary: Optional[str]) -> str:
         "Use the Cannes schedule tools to answer questions about events, panels, and registrations. "
         "Keep all replies concise, plain text, no markdown — Telegram renders markdown differently. "
         "If listing events, show at most 5 and offer to send more. "
-        "When recommending events, check for calendar conflicts and flag them."
+        "When recommending events, check for calendar conflicts and flag them. "
+        "When reporting on social buzz or trends, be specific: name actual people, companies, and sessions. "
+        "Never give generic summaries — if the data is thin, say so."
         f"{cal_section}"
     )
 

@@ -7,9 +7,19 @@ import requests
 log = logging.getLogger(__name__)
 
 FIRECRAWL_API_URL = "https://api.firecrawl.dev/v1/search"
+
+# Diverse searches to surface fresh news, people, and insights — not just top-ranked static posts
 SEARCHES = [
-    "Cannes Lions 2026 site:linkedin.com",
-    "Cannes Lions 2026 site:twitter.com OR site:x.com",
+    # Industry news — fresh articles from trade press
+    ("Industry news", "Cannes Lions 2026 news adtech site:thedrum.com OR site:adage.com OR site:campaignlive.com OR site:marketingweek.com"),
+    # Who's attending / going to Cannes
+    ("Who's attending", "Cannes Lions 2026 attending going CEO VP president adtech"),
+    # Fresh LinkedIn posts (people sharing insights)
+    ("LinkedIn insights", "Cannes Lions 2026 insights trends adtech programmatic site:linkedin.com"),
+    # X/Twitter buzz
+    ("X buzz", "Cannes Lions 2026 site:twitter.com OR site:x.com"),
+    # Sessions and hot topics
+    ("Hot topics", "Cannes Lions 2026 AI privacy retail media adtech session panel 2026"),
 ]
 
 
@@ -40,8 +50,9 @@ def _format_results(results: list[dict]) -> str:
 
 def get_trending_content(api_key: Optional[str] = None) -> str:
     """
-    Search LinkedIn and X/Twitter for trending Cannes Lions 2026 content.
-    Returns a plain-text block of results, or empty string if both searches fail.
+    Run multiple targeted searches for fresh Cannes Lions 2026 content:
+    industry news, who's attending, LinkedIn insights, X buzz, hot topics.
+    Returns a plain-text block of results, or empty string if all searches fail.
     """
     if api_key is None:
         api_key = os.getenv("FIRECRAWL_API_KEY", "")
@@ -50,8 +61,7 @@ def get_trending_content(api_key: Optional[str] = None) -> str:
         return ""
 
     blocks = []
-    labels = ["LinkedIn", "X/Twitter"]
-    for label, query in zip(labels, SEARCHES):
+    for label, query in SEARCHES:
         try:
             results = _search(query, api_key)
             text = _format_results(results)
