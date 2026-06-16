@@ -15,6 +15,8 @@ class CalendarEvent:
     end: str    # HH:MM
 
     def __str__(self) -> str:
+        if self.start == "all-day":
+            return f"[all day] {self.title}"
         return f"{self.start}-{self.end} {self.title}"
 
 
@@ -39,13 +41,18 @@ class CalendarClient:
         ).execute()
         events = []
         for item in result.get("items", []):
+            title = item.get("summary", "Untitled")
             start_raw = item.get("start", {}).get("dateTime", "")
             end_raw = item.get("end", {}).get("dateTime", "")
-            if not start_raw or not end_raw:
-                continue  # skip all-day events (use "date" not "dateTime") and malformed entries
-            start = datetime.fromisoformat(start_raw).strftime("%H:%M")
-            end = datetime.fromisoformat(end_raw).strftime("%H:%M")
-            events.append(CalendarEvent(title=item.get("summary", "Untitled"), start=start, end=end))
+            if start_raw and end_raw:
+                # Timed event
+                start = datetime.fromisoformat(start_raw).strftime("%H:%M")
+                end = datetime.fromisoformat(end_raw).strftime("%H:%M")
+            else:
+                # All-day event
+                start = "all-day"
+                end = "all-day"
+            events.append(CalendarEvent(title=title, start=start, end=end))
         return events
 
 
