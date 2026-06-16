@@ -71,17 +71,15 @@ def truncate_for_whatsapp(text: str) -> str:
 
 
 def _get_calendar_summary(cal_client: Optional[CalendarClient]) -> Optional[str]:
-    """Fetch calendar events for Cannes week (June 21-26) plus today."""
+    """Fetch calendar events continuously from today through June 26 (end of Cannes)."""
     if cal_client is None:
         return None
     try:
-        cannes_start = date(2026, 6, 21)
         cannes_end = date(2026, 6, 26)
         today = date.today()
-        # Collect unique dates: today + all of Cannes week
+        # Fetch every day from today through end of Cannes week
         dates_to_fetch = set()
-        dates_to_fetch.add(today)
-        d = cannes_start
+        d = today
         while d <= cannes_end:
             dates_to_fetch.add(d)
             d += timedelta(days=1)
