@@ -28,6 +28,14 @@ def parse_csv(csv_content: str) -> dict:
     df.columns = [c.strip() for c in df.columns]
     df = df.rename(columns={k: v for k, v in _COL_MAP.items() if k in df.columns})
 
+    required = {"seller", "ad_type", "date", "revenue"}
+    missing = required - set(df.columns)
+    if missing:
+        raise ValueError(f"CSV missing required columns: {missing}")
+
+    if df.empty:
+        raise ValueError("CSV contains no data rows")
+
     for col in ("revenue", "fill_rate", "pub_share", "rpm", "auction_rate"):
         if col in df.columns:
             df[col] = (

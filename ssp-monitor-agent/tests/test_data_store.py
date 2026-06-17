@@ -64,3 +64,21 @@ def test_load_returns_none_when_missing(tmp_path, monkeypatch):
     import bot.data_store as ds
     monkeypatch.setattr(ds, "DATA_FILE", tmp_path / "missing.json")
     assert load() is None
+
+
+def test_parse_csv_raises_on_missing_column():
+    bad_csv = "Wrong Column,Day\nval,2026-06-16\n"
+    with pytest.raises(ValueError, match="missing required columns"):
+        parse_csv(bad_csv)
+
+
+def test_parse_csv_raises_on_empty_data():
+    empty_csv = (
+        "SSP Adapter Connection Primary Seller,Day,"
+        "SSP Adapter Advertiser Type (Internal),SSP Adapter Auctions,"
+        "SSP Adapter Auctions (Previous),Diff,SSP Handled Auction Rate,"
+        "SSP Adapter Publisher Net Revenue,SSP Adapter Fill Rate %,"
+        "SSP Adapter Publisher Share (Gross),SSP Adapter - Gross RPM\n"
+    )
+    with pytest.raises(ValueError, match="no data rows"):
+        parse_csv(empty_csv)
