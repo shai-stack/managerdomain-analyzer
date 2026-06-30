@@ -6,6 +6,7 @@ def build_daily_context(data: dict) -> str:
     lines = [f"# SSP Performance Data — Latest: {latest_date}\n"]
 
     lines.append("## Today's Performance (ranked by revenue)")
+    lines.append("")  # blank line for spacing
     lines.append(
         "Seller | Ad Type | Revenue | Fill Rate | RPM | Auction Rate | "
         "Auctions | Auctions Prev | Diff"
@@ -30,6 +31,7 @@ def build_daily_context(data: dict) -> str:
     lines.append("\n## Daily Revenue Trends (top 30 sellers, last 30 days)")
     top30 = sorted(summary.items(), key=lambda x: x[1]["total_revenue"], reverse=True)[:30]
     for _, s in top30:
+        # YYYY-MM-DD strings sort correctly as strings
         dates = ", ".join(
             f"{d}: ${v}" for d, v in sorted(s["revenue_by_date"].items())
         )
