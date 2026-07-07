@@ -10,7 +10,7 @@ def fetch_latest_csv(gmail_email: str, app_password: str):
     """Return CSV string from the latest SSP report email, or None if not found."""
     with imaplib.IMAP4_SSL(_IMAP_HOST) as mail:
         mail.login(gmail_email, app_password)
-        mail.select("INBOX")
+        mail.select('"clients-alerts-ssp-revshare-group"')
 
         # Try unseen first, fall back to most recent from sender
         _, msg_ids = mail.search(None, f'FROM "{_SENDER}" UNSEEN')
