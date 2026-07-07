@@ -80,7 +80,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     await update.effective_chat.send_action("typing")
     history = session.get_history(chat_id)
-    response = qa.answer(text, data, history, api_key)
+    try:
+        response = qa.answer(text, data, history, api_key)
+    except Exception as e:
+        logger.error("Q&A error: %s", e, exc_info=True)
+        await update.message.reply_text(u"❌ Error: {}".format(str(e)))
+        return
     session.append(chat_id, "user", text)
     session.append(chat_id, "assistant", response)
 
