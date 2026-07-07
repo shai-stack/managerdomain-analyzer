@@ -44,6 +44,24 @@ async def cmd_refresh(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await update.message.reply_text(u"❌ No new report found in inbox.")
 
 
+async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    doc = update.message.document
+    if not doc.file_name.endswith(".csv"):
+        await update.message.reply_text(u"⚠️ Please send a .csv file.")
+        return
+    await update.message.reply_text(u"📂 Loading CSV...")
+    file = await doc.get_file()
+    csv_bytes = await file.download_as_bytearray()
+    csv_content = csv_bytes.decode("utf-8", errors="replace")
+    try:
+        data = data_store.parse_csv(csv_content)
+        data_store.save(data)
+        session.clear_all()
+        await update.message.reply_text(u"✅ Report loaded: {}. Ask me anything!".format(data["latest_date"]))
+    except Exception as e:
+        await update.message.reply_text(u"❌ Failed to parse CSV: {}".format(str(e)))
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     text = update.message.text
@@ -76,4 +94,5 @@ def build_app(token):
     app.add_handler(CommandHandler("status", cmd_status))
     app.add_handler(CommandHandler("refresh", cmd_refresh))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
     return app
