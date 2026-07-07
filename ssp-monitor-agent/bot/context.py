@@ -20,21 +20,20 @@ def build_daily_context(data: dict) -> str:
             f"{r.get('auctions_diff', 0):,}"
         )
 
-    lines.append("\n## 30-Day Summary (per seller/ad_type)")
+    lines.append("\n## 30-Day Summary (per seller)")
     lines.append("Seller | Ad Type | 30d Total Revenue | Avg Fill Rate | Avg RPM")
     for key, s in sorted(summary.items(), key=lambda x: x[1]["total_revenue"], reverse=True):
         lines.append(
-            f"{s['seller']} | {s['ad_type']} | ${s['total_revenue']:.2f} | "
-            f"{s['avg_fill_rate']:.4f} | ${s['avg_rpm']:.4f}"
+            f"{s['seller']} | {s.get('ad_type', '-')} | ${s['total_revenue']:.2f} | "
+            f"{s.get('avg_fill_rate', 0):.4f} | ${s.get('avg_rpm', 0):.4f}"
         )
 
     lines.append("\n## Daily Revenue Trends (top 30 sellers, last 30 days)")
     top30 = sorted(summary.items(), key=lambda x: x[1]["total_revenue"], reverse=True)[:30]
     for _, s in top30:
-        # YYYY-MM-DD strings sort correctly as strings
         dates = ", ".join(
             f"{d}: ${v}" for d, v in sorted(s["revenue_by_date"].items())
         )
-        lines.append(f"{s['seller']} ({s['ad_type']}): {dates}")
+        lines.append(f"{s['seller']} ({s.get('ad_type', '-')}): {dates}")
 
     return "\n".join(lines)
